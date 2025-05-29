@@ -1,0 +1,10 @@
+body {
+    padding: 20px;
+}
+.chart-container {
+    max-width: 600px;
+    margin: 20px auto;
+}
+#results {
+    margin-top: 20px;
+}
