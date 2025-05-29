@@ -1,7 +1,7 @@
 const view = {
     chart: null,
 
-    renderResults({ slope, intercept, r2, data, predict }) {
+    renderResults({ slope, intercept, r2, data }) {
         document.getElementById('results').style.display = 'block';
         document.getElementById('equation').innerText = `Рівняння: y = ${slope}x + ${intercept}`;
         document.getElementById('r2').innerText = `Коефіцієнт детермінації (R²): ${r2}`;
@@ -20,8 +20,8 @@ const view = {
                     {
                         label: 'Лінія регресії',
                         data: [
-                            { x: Math.min(...data.map(d => d.index)), y: predict(Math.min(...data.map(d => d.index))) },
-                            { x: Math.max(...data.map(d => d.index)), y: predict(Math.max(...data.map(d => d.index))) }
+                            { x: Math.min(...data.map(d => d.index)), y: Math.min(...data.map(d => d.index)) * slope + Number(intercept) },
+                            { x: Math.max(...data.map(d => d.index)), y: Math.max(...data.map(d => d.index)) * slope + Number(intercept) }
                         ],
                         type: 'line',
                         borderColor: 'red',

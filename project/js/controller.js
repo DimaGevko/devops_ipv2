@@ -26,12 +26,15 @@ const controller = {
                 .setCallback(data => {
                     if (data.action === google.picker.Action.PICKED) {
                         const fileId = data.docs[0].id;
-                        gapi.client.drive.files.get({
-                            fileId: fileId,
-                            alt: 'media'
-                        }).then(response => {
-                            this.processData(response.body);
-                        }).catch(err => view.showError('Помилка завантаження з Google Drive: ' + err.message));
+                        fetch(`/api/google-drive?fileId=${fileId}`, {
+                            headers: { 'Authorization': `Bearer ${gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token}` }
+                        })
+                            .then(response => {
+                                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                                return response.json();
+                            })
+                            .then(result => view.renderResults(result))
+                            .catch(err => view.showError('Помилка завантаження з Google Drive: ' + err.message));
                     }
                 })
                 .build();
@@ -45,25 +48,12 @@ const controller = {
             view.showError('Введіть URL файлу GitHub');
             return;
         }
-        fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'text/plain'
-            }
-        })
+        fetch(`/api/github?url=${encodeURIComponent(url)}`)
             .then(response => {
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('Файл не знайдено. Перевірте URL або доступ до репозиторію.');
-                    } else if (response.status === 403) {
-                        throw new Error('Доступ заборонено. Репозиторій може бути приватним або є проблеми з CORS.');
-                    } else {
-                        throw new Error(`Помилка HTTP: ${response.status} ${response.statusText}`);
-                    }
-                }
-                return response.text();
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                return response.json();
             })
-            .then(data => this.processData(data))
+            .then(result => view.renderResults(result)) // Пряма передача результату
             .catch(err => view.showError(`Помилка завантаження з GitHub: ${err.message}`));
     },
 
@@ -79,18 +69,32 @@ const controller = {
         this.processData(sampleData);
     },
 
+    processLocalData(content) {
+        fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                return response.json();
+            })
+            .then(result => view.renderResults(result))
+            .catch(err => view.showError(`Помилка обробки даних: ${err.message}`));
+    },
+
     processData(content) {
-        try {
-            const data = model.parseCSV(content);
-            if (data.length === 0) {
-                view.showError('Немає валідних даних у файлі');
-                return;
-            }
-            const result = model.performRegression(data);
-            view.renderResults(result);
-        } catch (err) {
-            view.showError('Помилка обробки даних: ' + err.message);
-        }
+        fetch('/api/regression', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                return response.json();
+            })
+            .then(result => view.renderResults(result))
+            .catch(err => view.showError(`Помилка обробки даних: ${err.message}`));
     }
 };
 
